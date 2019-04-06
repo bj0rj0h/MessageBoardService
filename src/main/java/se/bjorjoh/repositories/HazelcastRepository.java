@@ -1,12 +1,26 @@
 package se.bjorjoh.repositories;
 
+import com.hazelcast.config.Config;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import org.springframework.stereotype.Repository;
 import se.bjorjoh.models.Message;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Repository
 public class HazelcastRepository implements BoardRepository {
+
+    private static final String MESSAGE_MAP_NAME = "se.bjorjoh.messages";
+    private HazelcastInstance hazelcastInstance;
+
+    public HazelcastRepository(){
+        Config cfg = new Config();
+        hazelcastInstance = Hazelcast.newHazelcastInstance(cfg);
+    }
+
     @Override
     public List<Message> getMessages() {
         return null;
@@ -20,6 +34,9 @@ public class HazelcastRepository implements BoardRepository {
     @Override
     public void saveMessage(Message message) {
 
+        UUID uuid = UUID.randomUUID();
+        Map<String,Message> messages = hazelcastInstance.getMap(MESSAGE_MAP_NAME);
+        messages.put(uuid.toString(),message);
     }
 
     @Override
