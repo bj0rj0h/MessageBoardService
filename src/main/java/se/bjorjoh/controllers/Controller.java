@@ -30,10 +30,11 @@ public class Controller {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Message addMessage(@Valid @RequestBody Message message,
-                              @RequestHeader("Authorization") String jwt,
+                              @RequestHeader("Authorization") String authorizationHeader,
                               HttpServletResponse response) {
 
-        Message createdMessage = boardService.addMessage(message);
+        String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
+        Message createdMessage = boardService.addMessage(message,jwt);
         response.setStatus(HttpServletResponse.SC_CREATED);
         return createdMessage;
     }
@@ -50,6 +51,16 @@ public class Controller {
     @RequestMapping(value = "/messages/{messageId}",method = RequestMethod.DELETE)
     public void deleteMessage(@PathVariable("messageId") String messageId,HttpServletResponse response) {
         response.setStatus(HttpServletResponse.SC_OK);
+
+    }
+
+    private String extractJwtFromAuthorizationHeader(String authorizationHeader) {
+        String[] split = authorizationHeader.split("\\s+");
+        String result = "";
+        if (split[1] != null){
+            result = split[1];
+        }
+        return result;
 
     }
 

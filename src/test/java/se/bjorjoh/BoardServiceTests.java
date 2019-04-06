@@ -18,6 +18,7 @@ import se.bjorjoh.services.BoardService;
 @ComponentScan("se.bjorjoh.services.BoardService")
 public class BoardServiceTests {
 
+    private static final String SAMPLE_JWT = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJhdXRoLmJqb3Jqb2guc2UiLCJpYXQiOjE1NTQ1NDU1OTQsImV4cCI6MTU4NjA4MTU5NCwiYXVkIjoibWVzc2FnZUJvYXJkLmJqb3Jqb2guc2UiLCJzdWIiOiJsaXNhLmVyaWtzc29uQGV4YW1wbGUuY29tIiwiR2l2ZW5OYW1lIjoiTGlzYSIsIlN1cm5hbWUiOiJFcmlrc3NvbiIsIkVtYWlsIjoibGlzYS5lcmlrc3NvbkBleGFtcGxlLmNvbSJ9.aH7qdF99fPraVD5WW6s3Om6Yl7xUOuIPV0tEj4AMFV4";
 
 
     @TestConfiguration
@@ -44,7 +45,7 @@ public class BoardServiceTests {
     @Test
     public void addMessage_validMessage_messageReturned(){
 
-        Message result = boardService.addMessage(message);
+        Message result = boardService.addMessage(message,SAMPLE_JWT);
         Assert.assertNotNull(result);
 
 
