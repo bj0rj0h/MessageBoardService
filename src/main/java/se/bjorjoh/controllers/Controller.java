@@ -30,11 +30,12 @@ public class Controller {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Message addMessage(@Valid @RequestBody Message message,
+                              @RequestHeader("Authorization") String jwt,
                               HttpServletResponse response) {
 
-        boardService.addMessage(message);
+        Message createdMessage = boardService.addMessage(message);
         response.setStatus(HttpServletResponse.SC_CREATED);
-        return new Message();
+        return createdMessage;
     }
 
     @RequestMapping(value = "/messages/{messageId}",

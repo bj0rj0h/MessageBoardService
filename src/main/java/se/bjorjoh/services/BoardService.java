@@ -11,6 +11,7 @@ public class BoardService {
 
     private final BoardRepository boardRepository;
 
+
     @Autowired
     public BoardService (HazelcastRepository hazelcastRepository){
         boardRepository = hazelcastRepository;
@@ -18,6 +19,6 @@ public class BoardService {
 
     public Message addMessage(Message message){
         boardRepository.saveMessage(message);
-        return new Message();
+        return message;
     }
 }
