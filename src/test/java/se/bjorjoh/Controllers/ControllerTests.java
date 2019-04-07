@@ -29,7 +29,7 @@ import static org.mockito.Mockito.any;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ComponentScan("se.bjorjoh.controllers")
 @ComponentScan("se.bjorjoh.services")
-@TestPropertySource(locations = "/test.properties")
+@TestPropertySource(locations = "/application.properties")
 public class ControllerTests {
 
     private static final String AUTHORIZATION_MISSING_BEARER_PREFIX = "abc123";
