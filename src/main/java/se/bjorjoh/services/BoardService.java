@@ -3,9 +3,6 @@ package se.bjorjoh.services;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hazelcast.config.Config;
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +13,11 @@ import se.bjorjoh.repositories.BoardRepository;
 import se.bjorjoh.repositories.HazelcastRepository;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Base64;
+import java.util.Date;
+import java.util.TimeZone;
 
 @Service
 public class BoardService {
@@ -33,15 +34,33 @@ public class BoardService {
         try {
             DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
             JwtContent jwtContent = getJwtContent(jwt.getPayload());
-            logger.info(jwtContent.getGivenName());
+            addMessageForUser(jwtContent,message);
         } catch (JWTVerificationException e){
             logger.error("Error while validating jwt signature",e);
             throw e;
         }catch (IOException e){
             throw e;
         }
-        boardRepository.saveMessage(message);
         return message;
+    }
+
+    private Message addMessageForUser(JwtContent jwtContent,Message message) {
+
+        String userEmail = jwtContent.getEmail();
+        message.setCreator(userEmail);
+
+        TimeZone tz = TimeZone.getDefault();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
+        df.setTimeZone(tz);
+        String nowAsISO = df.format(new Date());
+        message.setLastUpdated(nowAsISO);
+
+        String uuid = boardRepository.saveMessage(message);
+        message.setMessageId(uuid);
+
+        return message;
+
+
     }
 
     private JwtContent getJwtContent(String jwtPayload) throws IOException{

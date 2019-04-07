@@ -29,11 +29,14 @@ public class HazelcastRepository implements BoardRepository {
     }
 
     @Override
-    public void saveMessage(Message message) {
+    public String saveMessage(Message message) {
 
         UUID uuid = UUID.randomUUID();
         Map<String,Message> messages = hazelcastInstance.getMap(MESSAGE_MAP_NAME);
-        messages.put(uuid.toString(),message);
+        String uuidAsString = uuid.toString();
+        message.setMessageId(uuidAsString);
+        messages.put(uuidAsString,message);
+        return uuidAsString;
     }
 
     @Override

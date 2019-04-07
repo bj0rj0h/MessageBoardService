@@ -8,7 +8,7 @@ public interface BoardRepository {
 
     List<Message> getMessages();
     Message getMessage(String messageId);
-    void saveMessage(Message message);
+    String saveMessage(Message message);
     void editMessage(String messageId,Message message);
     void deleteMessage(String messageId);
 }

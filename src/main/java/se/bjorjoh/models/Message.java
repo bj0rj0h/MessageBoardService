@@ -12,6 +12,9 @@ public class Message implements Serializable {
     @Size(min = 1)
     @JsonProperty("message")
     private String body;
+    private String creator;
+    private String lastUpdated;
+    private String messageId;
 
     public String getBody() {
         return body;
@@ -19,5 +22,29 @@ public class Message implements Serializable {
 
     public void setBody(String body) {
         this.body = body;
+    }
+
+    public String getCreator() {
+        return creator;
+    }
+
+    public void setCreator(String creator) {
+        this.creator = creator;
+    }
+
+    public String getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(String lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
     }
 }

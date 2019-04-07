@@ -9,30 +9,33 @@ import com.hazelcast.core.HazelcastInstance;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.junit4.SpringRunner;
 import se.bjorjoh.models.Message;
-import se.bjorjoh.repositories.BoardRepository;
 import se.bjorjoh.repositories.HazelcastRepository;
+
+import static org.junit.Assert.assertFalse;
 
 
 @RunWith(SpringRunner.class)
 public class RepositoryTests {
 
 
-    private static BoardRepository boardRepository;
+    @Autowired
+    private static HazelcastRepository hazelcastRepository;
 
     @BeforeClass
     public static void setUp(){
         Config config = new Config();
-        config.setInstanceName("message-board-instance")
+        config.setInstanceName("message-board-test-instance")
                 .addMapConfig(
                         new MapConfig()
-                                .setName("messageBoardConfig")
+                                .setName("messageBoardTestConfig")
                                 .setMaxSizeConfig(new MaxSizeConfig(10, MaxSizeConfig.MaxSizePolicy.FREE_HEAP_SIZE))
                                 .setEvictionPolicy(EvictionPolicy.NONE)
                                 .setTimeToLiveSeconds(0));
         HazelcastInstance hazelcastInstance = Hazelcast.newHazelcastInstance(config);
-        boardRepository = new HazelcastRepository(hazelcastInstance);
+        hazelcastRepository = new HazelcastRepository(hazelcastInstance);
     }
 
     @Test
@@ -41,9 +44,12 @@ public class RepositoryTests {
         Message message = new Message();
         message.setBody("Hello");
 
-        boardRepository.saveMessage(message);
-
+        String uuid = hazelcastRepository.saveMessage(message);
+        assertFalse(uuid.isEmpty());
 
     }
+
+
+
 
 }
