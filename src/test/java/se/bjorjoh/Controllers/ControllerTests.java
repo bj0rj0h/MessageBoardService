@@ -1,7 +1,7 @@
 package se.bjorjoh.Controllers;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,11 +11,8 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.*;
-import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.client.DefaultResponseErrorHandler;
 import se.bjorjoh.Services.BoardServiceTests;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.services.BoardService;
@@ -35,6 +32,8 @@ import static org.mockito.Mockito.any;
 @TestPropertySource(locations = "/test.properties")
 public class ControllerTests {
 
+    private static final String AUTHORIZATION_MISSING_BEARER_PREFIX = "abc123";
+
 
     @MockBean
     private BoardService boardService;
@@ -44,7 +43,13 @@ public class ControllerTests {
 
     @Autowired
     private TestRestTemplate template;
-    
+
+    private String testHost;
+
+    @Before
+    public void setUp(){
+        this.testHost = "http://localhost:" + port;
+    }
 
     @Test
     public void addMessage_validMessage_status201(){
@@ -56,7 +61,7 @@ public class ControllerTests {
         Message message = new Message();
         message.setBody("Hello");
         HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
-        ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages", HttpMethod.POST,messageHttpEntity,Message.class);
+        ResponseEntity<Message> response = this.template.exchange(testHost + "/messages", HttpMethod.POST,messageHttpEntity,Message.class);
         assertThat(response.getStatusCode(),is(HttpStatus.CREATED));
 
     }
@@ -68,8 +73,50 @@ public class ControllerTests {
         headers.set(HttpHeaders.AUTHORIZATION,"Bearer " + BoardServiceTests.JWT_INVALID_SIGNATURE);
         headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
 
-
         when(boardService.addMessage(any(Message.class),anyString())).thenThrow(JWTVerificationException.class);
+
+        Message message = new Message();
+        message.setBody("Hello");
+        HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
+        ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages", HttpMethod.POST,messageHttpEntity,Message.class);
+        assertThat(response.getStatusCode(),is(HttpStatus.UNAUTHORIZED));
+
+    }
+
+    @Test
+    public void addMessage_authorizationHeaderMissingBearerPrefix_status401() {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION,this.AUTHORIZATION_MISSING_BEARER_PREFIX);
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+
+        Message message = new Message();
+        message.setBody("Hello");
+        HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
+        ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages", HttpMethod.POST,messageHttpEntity,Message.class);
+        assertThat(response.getStatusCode(),is(HttpStatus.UNAUTHORIZED));
+
+    }
+
+    @Test
+    public void addMessage_authorizationHeaderMissingJwtValue_status401() {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION,"Bearer");
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+
+        Message message = new Message();
+        message.setBody("Hello");
+        HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
+        ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages", HttpMethod.POST,messageHttpEntity,Message.class);
+        assertThat(response.getStatusCode(),is(HttpStatus.UNAUTHORIZED));
+
+    }
+
+    @Test
+    public void addMessage_authorizationHeaderMissing_status401() {
+
+        HttpHeaders headers = new HttpHeaders();
 
         Message message = new Message();
         message.setBody("Hello");

@@ -4,6 +4,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import se.bjorjoh.ErrorHandling.AuthorizationException;
 import se.bjorjoh.models.ErrorModel;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.services.BoardService;
@@ -37,6 +38,20 @@ public class Controller {
         return error;
     }
 
+    @ExceptionHandler({AuthorizationException.class})
+    public ErrorModel handleMalformedAuthorizationHeader(HttpServletResponse response){
+
+        TimeZone tz = TimeZone.getDefault();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+        df.setTimeZone(tz);
+        String nowAsISO = df.format(new Date());
+
+        ErrorModel error = new ErrorModel("Please make sure authorization header is provided with a valid token",nowAsISO);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        return error;
+    }
+
+
     @RequestMapping(value = "/messages",
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
@@ -50,11 +65,18 @@ public class Controller {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Message addMessage(@Valid @RequestBody Message message,
-                              @RequestHeader("Authorization") String authorizationHeader,
-                              HttpServletResponse response) throws IOException,JWTVerificationException{
+                              @RequestHeader(value = "Authorization",required = false) String authorizationHeader,
+                              HttpServletResponse response) throws IOException,JWTVerificationException,
+                                                            AuthorizationException{
 
+        if (authorizationHeader == null){
+            throw new AuthorizationException("Authorization header missing");
+        }
         String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
 
+        if (jwt.isEmpty()){
+            throw new AuthorizationException("Authorization header is missing bearer prefix or is badly formatted");
+        }
         Message createdMessage = boardService.addMessage(message,jwt);
         response.setStatus(HttpServletResponse.SC_CREATED);
         return createdMessage;
@@ -79,7 +101,7 @@ public class Controller {
     private String extractJwtFromAuthorizationHeader(String authorizationHeader) {
         String[] split = authorizationHeader.split("\\s+");
         String result = "";
-        if (split[1] != null){
+        if (split.length>1){
             result = split[1];
         }
         return result;
