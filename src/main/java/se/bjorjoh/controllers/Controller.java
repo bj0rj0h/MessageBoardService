@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import se.bjorjoh.ErrorHandling.AuthorizationException;
+import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.ErrorModel;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.services.BoardService;
@@ -14,7 +15,6 @@ import javax.validation.Valid;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -48,6 +48,19 @@ public class Controller {
 
         ErrorModel error = new ErrorModel("Please make sure authorization header is provided with a valid token",nowAsISO);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        return error;
+    }
+
+    @ExceptionHandler({UnauthorizedMessageAccessException.class})
+    public ErrorModel handleUnauthorizedAccess(HttpServletResponse response){
+
+        TimeZone tz = TimeZone.getDefault();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+        df.setTimeZone(tz);
+        String nowAsISO = df.format(new Date());
+
+        ErrorModel error = new ErrorModel("User does not have the rights to access the requested resource",nowAsISO);
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         return error;
     }
 
@@ -88,14 +101,35 @@ public class Controller {
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public Message editMessage(@PathVariable("messageId") String messageId,HttpServletResponse response) {
+    public Message editMessage(@PathVariable("messageId") String messageId,
+                               @Valid @RequestBody Message message,
+                               @RequestHeader(value = "Authorization",required = false)
+            String authorizationHeader,HttpServletResponse response) throws IOException, JWTVerificationException,
+            AuthorizationException{
+
+        if (authorizationHeader == null){
+
+            throw new AuthorizationException("Authorization header missing");
+        }
+        String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
+
+        if (jwt.isEmpty()){
+            throw new AuthorizationException("Authorization header is missing bearer prefix or is badly formatted");
+        }
+        Message editedMessage = boardService.editMessage(message,messageId,jwt);
         response.setStatus(HttpServletResponse.SC_OK);
-        return new Message();
+        response.setStatus(HttpServletResponse.SC_OK);
+        return editedMessage;
     }
 
     @RequestMapping(value = "/messages/{messageId}",method = RequestMethod.DELETE)
-    public void deleteMessage(@PathVariable("messageId") String messageId,HttpServletResponse response) {
-        response.setStatus(HttpServletResponse.SC_OK);
+    public void deleteMessage(@PathVariable("messageId") String messageId,
+                              @Valid @RequestBody Message message,
+                              @RequestHeader(value = "Authorization",required = false)
+                              String authorizationHeader,HttpServletResponse response) throws IOException, JWTVerificationException,
+            AuthorizationException{
+
+
 
     }
 
@@ -106,6 +140,10 @@ public class Controller {
             result = split[1];
         }
         return result;
+
+    }
+
+    public void verifyAuthorizationHeaderIsValid(){
 
     }
 

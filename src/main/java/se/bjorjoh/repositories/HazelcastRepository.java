@@ -35,7 +35,9 @@ public class HazelcastRepository implements BoardRepository {
 
     @Override
     public Message getMessage(String messageId) {
-        return null;
+        Map<String,Message> messages = hazelcastInstance.getMap(MESSAGE_MAP_NAME);
+        Message result = messages.get(messageId);
+        return result;
     }
 
     @Override
@@ -51,6 +53,8 @@ public class HazelcastRepository implements BoardRepository {
 
     @Override
     public void editMessage(String messageId, Message message) {
+        Map<String,Message> messages = hazelcastInstance.getMap(MESSAGE_MAP_NAME);
+        messages.put(messageId,message);
 
     }
 

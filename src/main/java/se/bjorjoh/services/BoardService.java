@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.JwtContent;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.repositories.BoardRepository;
@@ -81,5 +83,43 @@ public class BoardService {
     public List<Message> getAllMessages(){
 
         return boardRepository.getMessages();
+    }
+
+    public Message editMessage(Message message, String messageId,String jwtString) throws IOException,JWTVerificationException{
+
+        JwtContent jwtContent;
+
+        try {
+            DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
+            jwtContent = getJwtContent(jwt.getPayload());
+        } catch (JWTVerificationException e){
+            logger.error("Error while validating jwt signature",e);
+            throw e;
+        }catch (IOException e){
+            throw e;
+        }
+        Message editedMessage = editMessageForUser(jwtContent,message,messageId);
+        return editedMessage;
+    }
+
+    private Message editMessageForUser(JwtContent jwtContent, Message message,String messageId) throws UnauthorizedMessageAccessException {
+
+        Message storedMessage = boardRepository.getMessage(messageId);
+
+        if (!(storedMessage.getCreator().equals(jwtContent.getEmail()))){
+            throw new UnauthorizedMessageAccessException();
+        }
+
+        TimeZone tz = TimeZone.getDefault();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
+        df.setTimeZone(tz);
+        String nowAsISO = df.format(new Date());
+        storedMessage.setLastUpdated(nowAsISO);
+
+        storedMessage.setBody(message.getBody());
+
+        boardRepository.editMessage(messageId,storedMessage);
+
+        return storedMessage;
     }
 }
