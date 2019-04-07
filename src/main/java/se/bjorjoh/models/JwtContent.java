@@ -2,6 +2,7 @@ package se.bjorjoh.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+
 public class JwtContent {
 
     private String iss;
@@ -13,8 +14,20 @@ public class JwtContent {
     private String GivenName;
     @JsonProperty("Surname")
     private String Surname;
-    @JsonProperty("Email")
     private String Email;
+
+
+    public JwtContent(@JsonProperty("iss") String iss,@JsonProperty("iat") int iat,@JsonProperty("exp") int exp,@JsonProperty("aud") String aud,@JsonProperty("sub") String sub, @JsonProperty("GivenName")String givenName, @JsonProperty("Surname")String surname,
+                      @JsonProperty(required = true,value = "Email") String email) {
+        this.iss = iss;
+        this.iat = iat;
+        this.exp = exp;
+        this.aud = aud;
+        this.sub = sub;
+        GivenName = givenName;
+        Surname = surname;
+        Email = email;
+    }
 
     public java.lang.String getIss() {
         return iss;
@@ -76,6 +89,7 @@ public class JwtContent {
         return Email;
     }
 
+    @JsonProperty(required = true)
     public void setEmail(String email) {
         Email = email;
     }

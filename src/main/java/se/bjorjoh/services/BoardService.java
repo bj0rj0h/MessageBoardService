@@ -26,17 +26,16 @@ public class BoardService {
         boardRepository = hazelcastRepository;
     }
 
-    public Message addMessage(Message message,String jwtString){
+    public Message addMessage(Message message,String jwtString) throws IOException,JWTVerificationException{
         try {
             DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
             JwtContent jwtContent = getJwtContent(jwt.getPayload());
             logger.info(jwtContent.getGivenName());
         } catch (JWTVerificationException e){
-            //throw as unathorized
-            logger.info(e.toString());
+            logger.error("Error while validating jwt signature",e);
+            throw e;
         }catch (IOException e){
-            //throw as unathorized
-            logger.info(e.toString());
+            throw e;
         }
         boardRepository.saveMessage(message);
         return message;
