@@ -15,15 +15,17 @@ import se.bjorjoh.repositories.HazelcastRepository;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Base64;
-import java.util.Date;
-import java.util.TimeZone;
+import java.util.*;
 
 @Service
 public class BoardService {
 
     private final BoardRepository boardRepository;
     Logger logger = LoggerFactory.getLogger(BoardService.class);
+
+    public BoardRepository getBoardRepository(){
+        return boardRepository;
+    }
 
     @Autowired
     public BoardService (HazelcastRepository hazelcastRepository){
@@ -74,5 +76,10 @@ public class BoardService {
             logger.error("Error while decoding jwt payload",e);
             throw e;
         }
+    }
+
+    public List<Message> getAllMessages(){
+
+        return boardRepository.getMessages();
     }
 }

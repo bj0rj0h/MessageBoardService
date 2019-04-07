@@ -57,7 +57,8 @@ public class Controller {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Message> getMessages(HttpServletResponse response) {
         response.setStatus(HttpServletResponse.SC_OK);
-        return new ArrayList<Message>();
+        List<Message> result = boardService.getAllMessages();
+        return result;
     }
 
     @RequestMapping(value = "/messages",

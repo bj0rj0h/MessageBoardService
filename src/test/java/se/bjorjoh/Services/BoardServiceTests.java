@@ -15,7 +15,16 @@ import se.bjorjoh.models.Message;
 import se.bjorjoh.repositories.HazelcastRepository;
 import se.bjorjoh.services.BoardService;
 
+import javax.validation.constraints.AssertFalse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
 @ComponentScan("se.bjorjoh.services.BoardService")
@@ -27,13 +36,17 @@ public class BoardServiceTests {
 
 
     @TestConfiguration
-    static class BoardServiceTestContextConfiguration{
+    public static class BoardServiceTestContextConfiguration{
 
         @MockBean
-        HazelcastRepository hazelcastRepository;
+        private HazelcastRepository hazelcastRepository;
 
         @Bean
         public BoardService boardService(){return new BoardService(hazelcastRepository);}
+
+        public HazelcastRepository getHazelcastRepository(){
+            return hazelcastRepository;
+        }
 
     }
 
@@ -42,10 +55,12 @@ public class BoardServiceTests {
     private Message message;
 
 
+
     @Before
     public void setUp(){
         message = new Message();
         message.setBody("Hello world");
+
     }
 
     @Test
@@ -70,4 +85,31 @@ public class BoardServiceTests {
         boardService.addMessage(message, JWT_MISSING_EMAIL_CLAIM);
 
     }
+
+    @Test
+    public void getMessages_validRequest_messagesToBeReturned() {
+
+        ArrayList<Message> messageArrayList = new ArrayList<>();
+
+        Message sample1 = new Message();
+        sample1.setBody("Hello");
+        sample1.setMessageId("abc123");
+        sample1.setLastUpdated("someTime");
+        sample1.setCreator("user@example.com");
+        messageArrayList.add(sample1);
+
+        Message sample2 = new Message();
+        sample2.setBody("Hello");
+        sample2.setMessageId("abc123");
+        sample2.setLastUpdated("someTime");
+        sample2.setCreator("user@example.com");
+        messageArrayList.add(sample2);
+
+        when(boardService.getBoardRepository().getMessages()).thenReturn(messageArrayList);
+
+        List<Message> messageList = boardService.getAllMessages();
+        assertTrue(messageList.size() == 2);
+
+    }
+
 }

@@ -10,6 +10,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -18,6 +19,7 @@ import se.bjorjoh.models.Message;
 import se.bjorjoh.services.BoardService;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -123,6 +125,14 @@ public class ControllerTests {
         HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
         ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages", HttpMethod.POST,messageHttpEntity,Message.class);
         assertThat(response.getStatusCode(),is(HttpStatus.UNAUTHORIZED));
+
+    }
+
+    @Test
+    public void getMessages_validRequest_status200() {
+        
+        ResponseEntity<List<Message>> response = this.template.exchange("http://localhost:" + port+ "/messages", HttpMethod.GET,null,new ParameterizedTypeReference<List<Message>>(){});
+        assertThat(response.getStatusCode(),is(HttpStatus.OK));
 
     }
 

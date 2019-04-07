@@ -4,6 +4,7 @@ import com.hazelcast.core.HazelcastInstance;
 import org.springframework.stereotype.Repository;
 import se.bjorjoh.models.Message;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,7 +21,16 @@ public class HazelcastRepository implements BoardRepository {
 
     @Override
     public List<Message> getMessages() {
-        return null;
+
+        Map messages = hazelcastInstance.getMap(MESSAGE_MAP_NAME);
+
+        List<Message> messageList = new ArrayList<>();
+
+        messages.forEach((key, value) -> {
+            messageList.add((Message)value);
+        });
+
+        return messageList;
     }
 
     @Override
