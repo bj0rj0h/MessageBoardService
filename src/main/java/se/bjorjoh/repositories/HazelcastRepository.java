@@ -1,7 +1,5 @@
 package se.bjorjoh.repositories;
 
-import com.hazelcast.config.Config;
-import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.springframework.stereotype.Repository;
 import se.bjorjoh.models.Message;
@@ -16,9 +14,8 @@ public class HazelcastRepository implements BoardRepository {
     private static final String MESSAGE_MAP_NAME = "se.bjorjoh.messages";
     private HazelcastInstance hazelcastInstance;
 
-    public HazelcastRepository(){
-        Config cfg = new Config();
-        hazelcastInstance = Hazelcast.newHazelcastInstance(cfg);
+    public HazelcastRepository(HazelcastInstance hazelcastInstance){
+        this.hazelcastInstance = hazelcastInstance;
     }
 
     @Override

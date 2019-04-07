@@ -9,6 +9,7 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan("se.bjorjoh.services")
 @ComponentScan("se.bjorjoh.models")
 @ComponentScan("se.bjorjoh.repositories")
+@ComponentScan("se.bjorjoh.configs")
 public class Main {
 
     public static void main(String[] args) {
