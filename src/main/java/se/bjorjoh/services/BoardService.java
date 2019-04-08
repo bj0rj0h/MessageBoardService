@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import se.bjorjoh.ErrorHandling.AuthenticationException;
+import se.bjorjoh.ErrorHandling.JwtFormatException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.JwtContent;
 import se.bjorjoh.models.Message;
@@ -34,15 +36,15 @@ public class BoardService {
         boardRepository = hazelcastRepository;
     }
 
-    public Message addMessage(Message message,String jwtString) throws IOException,JWTVerificationException{
+    public Message addMessage(Message message,String jwtString) throws IOException,AuthenticationException{
         try {
             DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
             JwtContent jwtContent = getJwtContent(jwt.getPayload());
             addMessageForUser(jwtContent,message);
         } catch (JWTVerificationException e){
             logger.error("Error while validating jwt signature",e);
-            throw e;
-        }catch (IOException e){
+            throw new AuthenticationException();
+        } catch (IOException e){
             throw e;
         }
         return message;
@@ -53,10 +55,7 @@ public class BoardService {
         String userEmail = jwtContent.getEmail();
         message.setCreator(userEmail);
 
-        TimeZone tz = TimeZone.getDefault();
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
-        df.setTimeZone(tz);
-        String nowAsISO = df.format(new Date());
+        String nowAsISO=getCurrentTimeAsISO8601();
         message.setLastUpdated(nowAsISO);
 
         String uuid = boardRepository.saveMessage(message);
@@ -85,7 +84,7 @@ public class BoardService {
         return boardRepository.getMessages();
     }
 
-    public Message editMessage(Message message, String messageId,String jwtString) throws IOException,JWTVerificationException{
+    public Message editMessage(Message message, String messageId,String jwtString) throws JwtFormatException,AuthenticationException,UnauthorizedMessageAccessException{
 
         JwtContent jwtContent;
 
@@ -94,9 +93,10 @@ public class BoardService {
             jwtContent = getJwtContent(jwt.getPayload());
         } catch (JWTVerificationException e){
             logger.error("Error while validating jwt signature",e);
-            throw e;
-        }catch (IOException e){
-            throw e;
+            throw new AuthenticationException();
+        } catch (IOException e){
+            logger.error("Error while parsing JWT");
+            throw new JwtFormatException();
         }
         Message editedMessage = editMessageForUser(jwtContent,message,messageId);
         return editedMessage;
@@ -110,16 +110,20 @@ public class BoardService {
             throw new UnauthorizedMessageAccessException();
         }
 
-        TimeZone tz = TimeZone.getDefault();
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
-        df.setTimeZone(tz);
-        String nowAsISO = df.format(new Date());
+        String nowAsISO=getCurrentTimeAsISO8601();
         storedMessage.setLastUpdated(nowAsISO);
-
         storedMessage.setBody(message.getBody());
 
         boardRepository.editMessage(messageId,storedMessage);
 
         return storedMessage;
+    }
+
+    private String getCurrentTimeAsISO8601(){
+        TimeZone tz = TimeZone.getDefault();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
+        df.setTimeZone(tz);
+        String nowAsISO = df.format(new Date());
+        return nowAsISO;
     }
 }

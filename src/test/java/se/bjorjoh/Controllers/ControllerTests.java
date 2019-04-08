@@ -14,6 +14,8 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
+import se.bjorjoh.ErrorHandling.AuthenticationException;
+import se.bjorjoh.ErrorHandling.JwtFormatException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.Services.BoardServiceTests;
 import se.bjorjoh.models.Message;
@@ -70,13 +72,13 @@ public class ControllerTests {
     }
 
     @Test
-    public void addMessage_invalidJwtSignature_status201() throws IOException {
+    public void addMessage_invalidJwtSignature_status401() throws IOException,AuthenticationException {
 
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.AUTHORIZATION,"Bearer " + BoardServiceTests.JWT_INVALID_SIGNATURE);
         headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
 
-        when(boardService.addMessage(any(Message.class),anyString())).thenThrow(JWTVerificationException.class);
+        when(boardService.addMessage(any(Message.class),anyString())).thenThrow(AuthenticationException.class);
 
         Message message = new Message();
         message.setBody("Hello");
@@ -155,7 +157,7 @@ public class ControllerTests {
     }
 
     @Test
-    public void editMessage_unathorizedAccess_status403() throws IOException{
+    public void editMessage_unathorizedAccess_status403() throws JwtFormatException,AuthenticationException,UnauthorizedMessageAccessException{
 
         String messageId = "abc123";
         HttpHeaders headers = new HttpHeaders();

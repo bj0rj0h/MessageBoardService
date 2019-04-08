@@ -4,7 +4,8 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import se.bjorjoh.ErrorHandling.AuthorizationException;
+import se.bjorjoh.ErrorHandling.AuthenticationException;
+import se.bjorjoh.ErrorHandling.JwtFormatException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.ErrorModel;
 import se.bjorjoh.models.Message;
@@ -28,23 +29,27 @@ public class Controller {
     @ExceptionHandler({JWTVerificationException.class})
     public ErrorModel handleInvalidJwt(HttpServletResponse response){
 
-        TimeZone tz = TimeZone.getDefault();
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
-        df.setTimeZone(tz);
-        String nowAsISO = df.format(new Date());
 
+        String nowAsISO = getCurrentTimeAsISO8601();
         ErrorModel error = new ErrorModel("Error while verifying jwt signature",nowAsISO);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         return error;
     }
 
-    @ExceptionHandler({AuthorizationException.class})
+    @ExceptionHandler({JwtFormatException.class})
+    public ErrorModel handleMalformedJwtPayload(HttpServletResponse response){
+
+
+        String nowAsISO = getCurrentTimeAsISO8601();
+        ErrorModel error = new ErrorModel("Error while parsing jwt body",nowAsISO);
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        return error;
+    }
+
+    @ExceptionHandler({AuthenticationException.class})
     public ErrorModel handleMalformedAuthorizationHeader(HttpServletResponse response){
 
-        TimeZone tz = TimeZone.getDefault();
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
-        df.setTimeZone(tz);
-        String nowAsISO = df.format(new Date());
+        String nowAsISO = getCurrentTimeAsISO8601();
 
         ErrorModel error = new ErrorModel("Please make sure authorization header is provided with a valid token",nowAsISO);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -54,10 +59,7 @@ public class Controller {
     @ExceptionHandler({UnauthorizedMessageAccessException.class})
     public ErrorModel handleUnauthorizedAccess(HttpServletResponse response){
 
-        TimeZone tz = TimeZone.getDefault();
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
-        df.setTimeZone(tz);
-        String nowAsISO = df.format(new Date());
+        String nowAsISO = getCurrentTimeAsISO8601();
 
         ErrorModel error = new ErrorModel("User does not have the rights to access the requested resource",nowAsISO);
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -65,32 +67,23 @@ public class Controller {
     }
 
 
-    @RequestMapping(value = "/messages",
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/messages", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Message> getMessages(HttpServletResponse response) {
         response.setStatus(HttpServletResponse.SC_OK);
         List<Message> result = boardService.getAllMessages();
         return result;
     }
 
-    @RequestMapping(value = "/messages",
-            method = RequestMethod.POST,
+    @RequestMapping(value = "/messages", method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Message addMessage(@Valid @RequestBody Message message,
                               @RequestHeader(value = "Authorization",required = false) String authorizationHeader,
-                              HttpServletResponse response) throws IOException,JWTVerificationException,
-                                                            AuthorizationException{
+                              HttpServletResponse response) throws IOException,
+                                  AuthenticationException {
 
-        if (authorizationHeader == null){
-            throw new AuthorizationException("Authorization header missing");
-        }
-        String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
+        String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
 
-        if (jwt.isEmpty()){
-            throw new AuthorizationException("Authorization header is missing bearer prefix or is badly formatted");
-        }
         Message createdMessage = boardService.addMessage(message,jwt);
         response.setStatus(HttpServletResponse.SC_CREATED);
         return createdMessage;
@@ -103,21 +96,13 @@ public class Controller {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public Message editMessage(@PathVariable("messageId") String messageId,
                                @Valid @RequestBody Message message,
-                               @RequestHeader(value = "Authorization",required = false)
-            String authorizationHeader,HttpServletResponse response) throws IOException, JWTVerificationException,
-            AuthorizationException{
+                               @RequestHeader(value = "Authorization",required = false) String authorizationHeader,
+                               HttpServletResponse response) throws JwtFormatException, JWTVerificationException,
+                                   UnauthorizedMessageAccessException, AuthenticationException {
 
-        if (authorizationHeader == null){
+        String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
 
-            throw new AuthorizationException("Authorization header missing");
-        }
-        String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
-
-        if (jwt.isEmpty()){
-            throw new AuthorizationException("Authorization header is missing bearer prefix or is badly formatted");
-        }
         Message editedMessage = boardService.editMessage(message,messageId,jwt);
-        response.setStatus(HttpServletResponse.SC_OK);
         response.setStatus(HttpServletResponse.SC_OK);
         return editedMessage;
     }
@@ -126,10 +111,7 @@ public class Controller {
     public void deleteMessage(@PathVariable("messageId") String messageId,
                               @Valid @RequestBody Message message,
                               @RequestHeader(value = "Authorization",required = false)
-                              String authorizationHeader,HttpServletResponse response) throws IOException, JWTVerificationException,
-            AuthorizationException{
-
-
+                              String authorizationHeader,HttpServletResponse response) throws JWTVerificationException{
 
     }
 
@@ -143,8 +125,25 @@ public class Controller {
 
     }
 
-    public void verifyAuthorizationHeaderIsValid(){
+    public String verifyAuthorizationHeaderIsValid(String authorizationHeader) throws AuthenticationException {
 
+        if (authorizationHeader == null){
+            throw new AuthenticationException("Authorization header missing");
+        }
+        String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
+
+        if (jwt.isEmpty()){
+            throw new AuthenticationException("Authorization header is missing bearer prefix or is badly formatted");
+        }
+        return jwt;
+    }
+
+    private String getCurrentTimeAsISO8601(){
+        TimeZone tz = TimeZone.getDefault();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
+        df.setTimeZone(tz);
+        String nowAsISO = df.format(new Date());
+        return nowAsISO;
     }
 
 }

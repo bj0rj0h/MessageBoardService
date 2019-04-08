@@ -1,7 +1,6 @@
 package se.bjorjoh.ErrorHandling;
 
-public class UnauthorizedMessageAccessException extends RuntimeException {
-
+public class UnauthorizedMessageAccessException extends Exception {
 
     public UnauthorizedMessageAccessException() {
         super();

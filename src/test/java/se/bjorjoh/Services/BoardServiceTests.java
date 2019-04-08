@@ -11,6 +11,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.junit4.SpringRunner;
+import se.bjorjoh.ErrorHandling.AuthenticationException;
+import se.bjorjoh.ErrorHandling.JwtFormatException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.repositories.HazelcastRepository;
@@ -82,7 +84,7 @@ public class BoardServiceTests {
 
 
     @Test
-    public void addMessage_validMessageValidJwt_messageReturned() throws IOException{
+    public void addMessage_validMessageValidJwt_messageReturned() throws IOException,AuthenticationException{
 
         Message result = boardService.addMessage(message, JWT_VALID);
         Assert.assertNotNull(result);
@@ -90,15 +92,15 @@ public class BoardServiceTests {
 
     }
 
-    @Test(expected = JWTVerificationException.class)
-    public void addMessage_invalidJWTSignature_JWTVerificationExceptionThrown() throws IOException{
+    @Test(expected = AuthenticationException.class)
+    public void addMessage_invalidJWTSignature_JWTVerificationExceptionThrown() throws IOException,AuthenticationException{
 
        boardService.addMessage(message, JWT_INVALID_SIGNATURE);
 
     }
 
     @Test(expected = IOException.class)
-    public void addMessage_missingEmailClaimInJwt_IOExceptionThrown() throws IOException{
+    public void addMessage_missingEmailClaimInJwt_IOExceptionThrown() throws IOException,AuthenticationException{
 
         boardService.addMessage(message, JWT_MISSING_EMAIL_CLAIM);
 
@@ -115,7 +117,8 @@ public class BoardServiceTests {
     }
 
     @Test
-    public void editMessage_validRequest_editToPass() throws IOException{
+    public void editMessage_validRequest_editToPass() throws JwtFormatException, AuthenticationException,
+            UnauthorizedMessageAccessException{
 
         Message editedMessage = new Message();
         editedMessage.setBody("Hello");
@@ -131,8 +134,9 @@ public class BoardServiceTests {
 
     }
 
-    @Test(expected = JWTVerificationException.class)
-    public void editMessage_invalidJwt_JWTVerificationExceptionThrown() throws IOException{
+    @Test(expected = AuthenticationException.class)
+    public void editMessage_invalidJwt_JWTVerificationExceptionThrown() throws JwtFormatException,
+            AuthenticationException,UnauthorizedMessageAccessException{
 
         boardService.editMessage(message,"ABC123",JWT_INVALID_SIGNATURE);
 
@@ -140,7 +144,8 @@ public class BoardServiceTests {
 
 
     @Test(expected = UnauthorizedMessageAccessException.class)
-    public void editMessage_unathorizedAccess_UnauthorizedMessageAccessExceptionThrown() throws IOException{
+    public void editMessage_unauthorizedAccess_UnauthorizedMessageAccessExceptionThrown() throws JwtFormatException,
+            AuthenticationException,UnauthorizedMessageAccessException{
 
         Message editedMessage = new Message();
         editedMessage.setBody("Hello");
