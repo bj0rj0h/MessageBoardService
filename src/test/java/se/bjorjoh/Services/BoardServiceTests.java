@@ -11,6 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.junit4.SpringRunner;
+import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.repositories.HazelcastRepository;
 import se.bjorjoh.services.BoardService;
@@ -44,15 +45,14 @@ public class BoardServiceTests {
         @Bean
         public BoardService boardService(){return new BoardService(hazelcastRepository);}
 
-        public HazelcastRepository getHazelcastRepository(){
-            return hazelcastRepository;
-        }
-
     }
 
     @Autowired
     private BoardService boardService;
+
     private Message message;
+    ArrayList<Message> messageArrayList;
+
 
 
 
@@ -61,7 +61,25 @@ public class BoardServiceTests {
         message = new Message();
         message.setBody("Hello world");
 
+        messageArrayList = new ArrayList<>();
+
+        Message sample1 = new Message();
+        sample1.setBody("Hello");
+        sample1.setMessageId("abc123");
+        sample1.setLastUpdated("someTime");
+        sample1.setCreator("user@example.com");
+        messageArrayList.add(sample1);
+
+        Message sample2 = new Message();
+        sample2.setBody("Hello");
+        sample2.setMessageId("abc123");
+        sample2.setLastUpdated("someTime");
+        sample2.setCreator("user@example.com");
+        messageArrayList.add(sample2);
+
     }
+
+
 
     @Test
     public void addMessage_validMessageValidJwt_messageReturned() throws IOException{
@@ -89,27 +107,54 @@ public class BoardServiceTests {
     @Test
     public void getMessages_validRequest_messagesToBeReturned() {
 
-        ArrayList<Message> messageArrayList = new ArrayList<>();
-
-        Message sample1 = new Message();
-        sample1.setBody("Hello");
-        sample1.setMessageId("abc123");
-        sample1.setLastUpdated("someTime");
-        sample1.setCreator("user@example.com");
-        messageArrayList.add(sample1);
-
-        Message sample2 = new Message();
-        sample2.setBody("Hello");
-        sample2.setMessageId("abc123");
-        sample2.setLastUpdated("someTime");
-        sample2.setCreator("user@example.com");
-        messageArrayList.add(sample2);
-
         when(boardService.getBoardRepository().getMessages()).thenReturn(messageArrayList);
 
         List<Message> messageList = boardService.getAllMessages();
-        assertTrue(messageList.size() == 2);
+        assertTrue(messageList.size() >= 2);
 
     }
+
+    @Test
+    public void editMessage_validRequest_editToPass() throws IOException{
+
+        Message editedMessage = new Message();
+        editedMessage.setBody("Hello");
+        editedMessage.setMessageId("abc123");
+        editedMessage.setLastUpdated("someTime");
+        editedMessage.setCreator("lisa.eriksson@example.com");
+        when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(editedMessage);
+
+        Message newMessage = new Message();
+        newMessage.setBody("New hello");
+
+        boardService.editMessage(message,"ABC123",JWT_VALID);
+
+    }
+
+    @Test(expected = JWTVerificationException.class)
+    public void editMessage_invalidJwt_JWTVerificationExceptionThrown() throws IOException{
+
+        boardService.editMessage(message,"ABC123",JWT_INVALID_SIGNATURE);
+
+    }
+
+
+    @Test(expected = UnauthorizedMessageAccessException.class)
+    public void editMessage_unathorizedAccess_UnauthorizedMessageAccessExceptionThrown() throws IOException{
+
+        Message editedMessage = new Message();
+        editedMessage.setBody("Hello");
+        editedMessage.setMessageId("abc123");
+        editedMessage.setLastUpdated("someTime");
+        editedMessage.setCreator("someone.else@example.com");
+        when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(editedMessage);
+
+        Message newMessage = new Message();
+        newMessage.setBody("New hello");
+
+        boardService.editMessage(message,"ABC123",JWT_VALID);
+
+    }
+
 
 }
