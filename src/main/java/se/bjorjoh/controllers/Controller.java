@@ -2,10 +2,12 @@ package se.bjorjoh.controllers;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.NoSuchMessageException;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import se.bjorjoh.ErrorHandling.AuthenticationException;
 import se.bjorjoh.ErrorHandling.JwtFormatException;
+import se.bjorjoh.ErrorHandling.MissingMessageException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.ErrorModel;
 import se.bjorjoh.models.Message;
@@ -33,6 +35,16 @@ public class Controller {
         String nowAsISO = getCurrentTimeAsISO8601();
         ErrorModel error = new ErrorModel("Error while verifying jwt signature",nowAsISO);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        return error;
+    }
+
+    @ExceptionHandler({MissingMessageException.class})
+    public ErrorModel handleMissingMessage(HttpServletResponse response){
+
+
+        String nowAsISO = getCurrentTimeAsISO8601();
+        ErrorModel error = new ErrorModel("No message exists with the given id",nowAsISO);
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         return error;
     }
 
@@ -98,7 +110,7 @@ public class Controller {
                                @Valid @RequestBody Message message,
                                @RequestHeader(value = "Authorization",required = false) String authorizationHeader,
                                HttpServletResponse response) throws JwtFormatException, JWTVerificationException,
-                                   UnauthorizedMessageAccessException, AuthenticationException {
+            UnauthorizedMessageAccessException, AuthenticationException, MissingMessageException {
 
         String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
 
@@ -109,9 +121,11 @@ public class Controller {
 
     @RequestMapping(value = "/messages/{messageId}",method = RequestMethod.DELETE)
     public void deleteMessage(@PathVariable("messageId") String messageId,
-                              @Valid @RequestBody Message message,
-                              @RequestHeader(value = "Authorization",required = false)
-                              String authorizationHeader,HttpServletResponse response) throws JWTVerificationException{
+                              @RequestHeader(value = "Authorization",required = false) String authorizationHeader,
+                              HttpServletResponse response) throws JWTVerificationException, AuthenticationException {
+        String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
+
+        boardService.deleteMessage(jwt,messageId);
 
     }
 

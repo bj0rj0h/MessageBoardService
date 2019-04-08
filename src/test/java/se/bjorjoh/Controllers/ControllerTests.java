@@ -16,8 +16,10 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import se.bjorjoh.ErrorHandling.AuthenticationException;
 import se.bjorjoh.ErrorHandling.JwtFormatException;
+import se.bjorjoh.ErrorHandling.MissingMessageException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.Services.BoardServiceTests;
+import se.bjorjoh.models.ErrorModel;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.services.BoardService;
 
@@ -157,7 +159,7 @@ public class ControllerTests {
     }
 
     @Test
-    public void editMessage_unathorizedAccess_status403() throws JwtFormatException,AuthenticationException,UnauthorizedMessageAccessException{
+    public void editMessage_unathorizedAccess_status403() throws JwtFormatException, AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
 
         String messageId = "abc123";
         HttpHeaders headers = new HttpHeaders();
@@ -172,6 +174,25 @@ public class ControllerTests {
 
         ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages/"+messageId, HttpMethod.PUT,messageHttpEntity,Message.class);
         assertThat(response.getStatusCode(),is(HttpStatus.FORBIDDEN));
+
+    }
+
+    @Test
+    public void editMessage_badId_status404() throws JwtFormatException, AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
+
+        String messageId = "abc123";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION,"Bearer " + BoardServiceTests.JWT_VALID);
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+
+        Message message = new Message();
+        message.setBody("Hello");
+        HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
+        when(boardService.editMessage(any(Message.class),anyString(),anyString())).thenThrow(MissingMessageException.class);
+
+
+        ResponseEntity<ErrorModel> response = this.template.exchange("http://localhost:" + port+ "/messages/"+messageId, HttpMethod.PUT,messageHttpEntity,ErrorModel.class);
+        assertThat(response.getStatusCode(),is(HttpStatus.NOT_FOUND));
 
     }
 

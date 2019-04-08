@@ -6,10 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.NoSuchMessageException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import se.bjorjoh.ErrorHandling.AuthenticationException;
 import se.bjorjoh.ErrorHandling.JwtFormatException;
+import se.bjorjoh.ErrorHandling.MissingMessageException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.JwtContent;
 import se.bjorjoh.models.Message;
@@ -84,7 +86,8 @@ public class BoardService {
         return boardRepository.getMessages();
     }
 
-    public Message editMessage(Message message, String messageId,String jwtString) throws JwtFormatException,AuthenticationException,UnauthorizedMessageAccessException{
+    public Message editMessage(Message message, String messageId,String jwtString)
+            throws JwtFormatException, AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
 
         JwtContent jwtContent;
 
@@ -102,9 +105,15 @@ public class BoardService {
         return editedMessage;
     }
 
-    private Message editMessageForUser(JwtContent jwtContent, Message message,String messageId) throws UnauthorizedMessageAccessException {
+    private Message editMessageForUser(JwtContent jwtContent, Message message,String messageId)
+            throws UnauthorizedMessageAccessException,MissingMessageException {
 
         Message storedMessage = boardRepository.getMessage(messageId);
+
+        if (storedMessage == null){
+            logger.warn("No message found with id: " + messageId);
+            throw new MissingMessageException("No message with the given ID exists");
+        }
 
         if (!(storedMessage.getCreator().equals(jwtContent.getEmail()))){
             throw new UnauthorizedMessageAccessException();
@@ -125,5 +134,9 @@ public class BoardService {
         df.setTimeZone(tz);
         String nowAsISO = df.format(new Date());
         return nowAsISO;
+    }
+
+    public void deleteMessage(String jwt, String messageId) {
+
     }
 }

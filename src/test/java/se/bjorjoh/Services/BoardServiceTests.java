@@ -8,11 +8,13 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.NoSuchMessageException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.junit4.SpringRunner;
 import se.bjorjoh.ErrorHandling.AuthenticationException;
 import se.bjorjoh.ErrorHandling.JwtFormatException;
+import se.bjorjoh.ErrorHandling.MissingMessageException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.repositories.HazelcastRepository;
@@ -118,7 +120,7 @@ public class BoardServiceTests {
 
     @Test
     public void editMessage_validRequest_editToPass() throws JwtFormatException, AuthenticationException,
-            UnauthorizedMessageAccessException{
+            UnauthorizedMessageAccessException, MissingMessageException {
 
         Message editedMessage = new Message();
         editedMessage.setBody("Hello");
@@ -136,7 +138,7 @@ public class BoardServiceTests {
 
     @Test(expected = AuthenticationException.class)
     public void editMessage_invalidJwt_JWTVerificationExceptionThrown() throws JwtFormatException,
-            AuthenticationException,UnauthorizedMessageAccessException{
+            AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
 
         boardService.editMessage(message,"ABC123",JWT_INVALID_SIGNATURE);
 
@@ -145,7 +147,7 @@ public class BoardServiceTests {
 
     @Test(expected = UnauthorizedMessageAccessException.class)
     public void editMessage_unauthorizedAccess_UnauthorizedMessageAccessExceptionThrown() throws JwtFormatException,
-            AuthenticationException,UnauthorizedMessageAccessException{
+            AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
 
         Message editedMessage = new Message();
         editedMessage.setBody("Hello");
@@ -153,6 +155,19 @@ public class BoardServiceTests {
         editedMessage.setLastUpdated("someTime");
         editedMessage.setCreator("someone.else@example.com");
         when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(editedMessage);
+
+        Message newMessage = new Message();
+        newMessage.setBody("New hello");
+
+        boardService.editMessage(message,"ABC123",JWT_VALID);
+
+    }
+
+    @Test(expected = NoSuchMessageException.class)
+    public void editMessage_nonExistingId_nullMessage() throws JwtFormatException,
+            AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
+
+        when(boardService.getBoardRepository().getMessage(anyString())).thenThrow(NoSuchMessageException.class);
 
         Message newMessage = new Message();
         newMessage.setBody("New hello");
