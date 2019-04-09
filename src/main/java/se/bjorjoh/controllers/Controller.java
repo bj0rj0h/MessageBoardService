@@ -1,5 +1,7 @@
 package se.bjorjoh.controllers;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +11,7 @@ import se.bjorjoh.ErrorHandling.MissingMessageException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.ErrorModel;
 import se.bjorjoh.models.Message;
+import se.bjorjoh.services.BoardService;
 import se.bjorjoh.services.MessageService;
 
 import javax.servlet.http.HttpServletResponse;
@@ -22,6 +25,9 @@ import java.util.TimeZone;
 
 @RestController
 public class Controller {
+
+    Logger logger = LoggerFactory.getLogger(BoardService.class);
+
 
     @Autowired
     private MessageService boardService;
@@ -80,9 +86,11 @@ public class Controller {
                               HttpServletResponse response) throws IOException,
                                   AuthenticationException {
 
+        logger.debug("Adding new message with body: " + message.getBody());
         String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
 
         Message createdMessage = boardService.addMessage(message,jwt);
+        logger.debug("Message created");
         response.setStatus(HttpServletResponse.SC_CREATED);
         return createdMessage;
 
@@ -132,11 +140,13 @@ public class Controller {
     public String verifyAuthorizationHeaderIsValid(String authorizationHeader) throws AuthenticationException {
 
         if (authorizationHeader == null){
+            logger.warn("No authorization header provided");
             throw new AuthenticationException("Authorization header missing");
         }
 
         String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
         if (jwt.isEmpty()){
+            logger.warn("Authorization header badly formatted "+ authorizationHeader);
             throw new AuthenticationException("Authorization header is missing bearer prefix or is badly formatted");
         }
         return jwt;
@@ -146,7 +156,7 @@ public class Controller {
     private String getCurrentTimeAsISO8601(){
 
         TimeZone tz = TimeZone.getDefault();
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
         df.setTimeZone(tz);
         String nowAsISO = df.format(new Date());
         return nowAsISO;

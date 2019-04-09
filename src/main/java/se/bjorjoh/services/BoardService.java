@@ -62,15 +62,17 @@ public class BoardService implements MessageService {
     public Message addMessage(Message message, String jwtString) throws IOException,AuthenticationException {
 
         try {
+            logger.debug("Adding new message");
             DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
             JwtContent jwtContent = getJwtContent(jwt.getPayload());
             addMessageForUser(jwtContent,message);
         } catch (JWTVerificationException e){
             logger.error("Error while validating jwt signature",e);
             throw new AuthenticationException();
-        } catch (IOException e){
+        } catch (IOException e) {
             throw e;
         }
+        logger.debug("Returning messsage with id: " + message.getMessageId());
         return message;
 
     }
@@ -84,6 +86,7 @@ public class BoardService implements MessageService {
         message.setLastUpdated(nowAsISO);
 
         String uuid = boardRepository.saveMessage(message);
+        logger.debug("Message added");
         message.setMessageId(uuid);
 
         return message;
@@ -105,6 +108,7 @@ public class BoardService implements MessageService {
         }
 
         if (!(message.getCreator().equals(jwtContent.getEmail()))){
+            logger.warn("User: " + jwtContent.getEmail() + " is not authorized to access the requested message");
             throw new UnauthorizedMessageAccessException();
         }
     }
@@ -162,6 +166,7 @@ public class BoardService implements MessageService {
         }
 
         deleteMessageForUser(jwtContent,messageId);
+        logger.info("Message with id " + messageId + " deleted");
 
     }
 

@@ -1,8 +1,11 @@
 package se.bjorjoh.repositories;
 
 import com.hazelcast.core.HazelcastInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import se.bjorjoh.models.Message;
+import se.bjorjoh.services.BoardService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +15,7 @@ import java.util.UUID;
 @Repository
 public class HazelcastRepository implements BoardRepository {
 
+    Logger logger = LoggerFactory.getLogger(BoardService.class);
     private static final String MESSAGE_MAP_NAME = "se.bjorjoh.messages";
     private HazelcastInstance hazelcastInstance;
 
@@ -30,6 +34,8 @@ public class HazelcastRepository implements BoardRepository {
             messageList.add((Message)value);
         });
 
+        logger.info("Returning " + messageList.size() + " messages");
+
         return messageList;
     }
 
@@ -37,6 +43,7 @@ public class HazelcastRepository implements BoardRepository {
     public Message getMessage(String messageId) {
         Map<String,Message> messages = hazelcastInstance.getMap(MESSAGE_MAP_NAME);
         Message result = messages.get(messageId);
+        logger.info("Returning message with id: " + messageId);
         return result;
     }
 
@@ -48,6 +55,7 @@ public class HazelcastRepository implements BoardRepository {
         String uuidAsString = uuid.toString();
         message.setMessageId(uuidAsString);
         messages.put(uuidAsString,message);
+        logger.info("Message added with id " + uuidAsString);
         return uuidAsString;
     }
 
@@ -55,6 +63,7 @@ public class HazelcastRepository implements BoardRepository {
     public void editMessage(String messageId, Message message) {
         Map<String,Message> messages = hazelcastInstance.getMap(MESSAGE_MAP_NAME);
         messages.put(messageId,message);
+        logger.info("Message with id " +messageId + " edited");
 
     }
 
