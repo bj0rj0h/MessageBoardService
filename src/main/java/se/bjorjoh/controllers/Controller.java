@@ -2,7 +2,6 @@ package se.bjorjoh.controllers;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.NoSuchMessageException;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import se.bjorjoh.ErrorHandling.AuthenticationException;
@@ -109,7 +108,7 @@ public class Controller {
     public Message editMessage(@PathVariable("messageId") String messageId,
                                @Valid @RequestBody Message message,
                                @RequestHeader(value = "Authorization",required = false) String authorizationHeader,
-                               HttpServletResponse response) throws JwtFormatException, JWTVerificationException,
+                               HttpServletResponse response) throws JwtFormatException,
             UnauthorizedMessageAccessException, AuthenticationException, MissingMessageException {
 
         String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
@@ -122,11 +121,15 @@ public class Controller {
     @RequestMapping(value = "/messages/{messageId}",method = RequestMethod.DELETE)
     public void deleteMessage(@PathVariable("messageId") String messageId,
                               @RequestHeader(value = "Authorization",required = false) String authorizationHeader,
-                              HttpServletResponse response) throws JWTVerificationException, AuthenticationException {
+                              HttpServletResponse response)
+                                throws  AuthenticationException,
+                                        JwtFormatException,
+                                        MissingMessageException,
+                                        UnauthorizedMessageAccessException {
+
         String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
-
         boardService.deleteMessage(jwt,messageId);
-
+        response.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
 
     private String extractJwtFromAuthorizationHeader(String authorizationHeader) {

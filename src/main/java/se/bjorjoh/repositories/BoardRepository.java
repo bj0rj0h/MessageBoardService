@@ -10,5 +10,5 @@ public interface BoardRepository {
     Message getMessage(String messageId);
     String saveMessage(Message message);
     void editMessage(String messageId,Message message);
-    void deleteMessage(String messageId);
+    Message deleteMessage(String messageId);
 }

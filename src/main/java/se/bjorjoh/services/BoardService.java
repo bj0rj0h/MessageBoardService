@@ -128,6 +128,25 @@ public class BoardService {
         return storedMessage;
     }
 
+    private Message deleteMessageForUser(JwtContent jwtContent,String messageId)
+            throws UnauthorizedMessageAccessException,MissingMessageException {
+
+        Message storedMessage = boardRepository.getMessage(messageId);
+
+        if (storedMessage == null){
+            logger.warn("No message found with id: " + messageId);
+            throw new MissingMessageException("No message with the given ID exists");
+        }
+
+        if (!(storedMessage.getCreator().equals(jwtContent.getEmail()))){
+            throw new UnauthorizedMessageAccessException();
+        }
+
+        boardRepository.deleteMessage(messageId);
+
+        return storedMessage;
+    }
+
     private String getCurrentTimeAsISO8601(){
         TimeZone tz = TimeZone.getDefault();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
@@ -136,7 +155,25 @@ public class BoardService {
         return nowAsISO;
     }
 
-    public void deleteMessage(String jwt, String messageId) {
+    public void deleteMessage(String jwtString, String messageId) throws AuthenticationException, JwtFormatException, UnauthorizedMessageAccessException, MissingMessageException {
+
+        JwtContent jwtContent;
+
+        try {
+            DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
+            jwtContent = getJwtContent(jwt.getPayload());
+        } catch (JWTVerificationException e){
+            logger.error("Error while validating jwt signature",e);
+            throw new AuthenticationException();
+        } catch (IOException e){
+            logger.error("Error while parsing JWT");
+            throw new JwtFormatException();
+        }
+
+        Message deletedMessage = deleteMessageForUser(jwtContent,messageId);
+        if (deletedMessage == null){
+            throw new MissingMessageException();
+        }
 
     }
 }

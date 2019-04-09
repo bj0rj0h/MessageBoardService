@@ -59,7 +59,8 @@ public class HazelcastRepository implements BoardRepository {
     }
 
     @Override
-    public void deleteMessage(String messageId) {
-
+    public Message deleteMessage(String messageId) {
+        Map<String,Message> messages = hazelcastInstance.getMap(MESSAGE_MAP_NAME);
+        return messages.remove(messageId);
     }
 }
