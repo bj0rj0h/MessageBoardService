@@ -29,8 +29,7 @@ import java.util.List;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
@@ -159,7 +158,7 @@ public class ControllerTests {
     }
 
     @Test
-    public void editMessage_unathorizedAccess_status403() throws JwtFormatException, AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
+    public void editMessage_unauthorizedAccess_status403() throws JwtFormatException, AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
 
         String messageId = "abc123";
         HttpHeaders headers = new HttpHeaders();
@@ -193,6 +192,61 @@ public class ControllerTests {
 
         ResponseEntity<ErrorModel> response = this.template.exchange("http://localhost:" + port+ "/messages/"+messageId, HttpMethod.PUT,messageHttpEntity,ErrorModel.class);
         assertThat(response.getStatusCode(),is(HttpStatus.NOT_FOUND));
+
+    }
+
+    @Test
+    public void deleteMessage_unauthorizedAccess_status403() throws JwtFormatException, AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
+
+        String messageId = "abc123";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION,"Bearer " + BoardServiceTests.JWT_VALID);
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+
+        Message message = new Message();
+        message.setBody("Hello");
+        HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
+        doThrow(new UnauthorizedMessageAccessException()).when(boardService).deleteMessage(anyString(),anyString());
+
+        ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages/"+messageId, HttpMethod.DELETE,messageHttpEntity,Message.class);
+
+        assertThat(response.getStatusCode(),is(HttpStatus.FORBIDDEN));
+
+    }
+
+    @Test
+    public void deleteMessage_badId_status404() throws JwtFormatException, AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
+
+        String messageId = "abc123";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION,"Bearer " + BoardServiceTests.JWT_VALID);
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+
+        Message message = new Message();
+        message.setBody("Hello");
+        HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
+        doThrow(new MissingMessageException()).when(boardService).deleteMessage(anyString(),anyString());
+
+        ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages/"+messageId, HttpMethod.DELETE,messageHttpEntity,Message.class);
+
+        assertThat(response.getStatusCode(),is(HttpStatus.NOT_FOUND));
+
+    }
+
+    @Test
+    public void deleteMessage_validRequest_status200() {
+
+        String messageId = "abc123";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION,"Bearer " + BoardServiceTests.JWT_VALID);
+        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+
+        Message message = new Message();
+        message.setBody("Hello");
+        HttpEntity<Message> messageHttpEntity = new HttpEntity<>(message,headers);
+
+        ResponseEntity<Message> response = this.template.exchange("http://localhost:" + port+ "/messages/"+messageId, HttpMethod.DELETE,messageHttpEntity,Message.class);
+        assertThat(response.getStatusCode(),is(HttpStatus.NO_CONTENT));
 
     }
 

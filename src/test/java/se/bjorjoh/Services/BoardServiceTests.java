@@ -163,16 +163,67 @@ public class BoardServiceTests {
 
     }
 
-    @Test(expected = NoSuchMessageException.class)
+    @Test(expected = MissingMessageException.class)
     public void editMessage_nonExistingId_nullMessage() throws JwtFormatException,
             AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
 
-        when(boardService.getBoardRepository().getMessage(anyString())).thenThrow(NoSuchMessageException.class);
+        when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(null);
 
         Message newMessage = new Message();
         newMessage.setBody("New hello");
 
         boardService.editMessage(message,"ABC123",JWT_VALID);
+
+    }
+
+
+    @Test
+    public void deleteMessage_validRequest_noExceptionThrown() throws JwtFormatException, AuthenticationException,
+            UnauthorizedMessageAccessException, MissingMessageException {
+
+        Message editedMessage = new Message();
+        editedMessage.setBody("Hello");
+        editedMessage.setMessageId("abc123");
+        editedMessage.setLastUpdated("someTime");
+        editedMessage.setCreator("lisa.eriksson@example.com");
+        when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(editedMessage);
+
+        boardService.deleteMessage("ABC123",JWT_VALID);
+
+    }
+
+    @Test(expected = AuthenticationException.class)
+    public void deleteMessage_invalidJwt_JWTVerificationExceptionThrown() throws JwtFormatException,
+            AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
+
+        boardService.deleteMessage("ABC123",JWT_INVALID_SIGNATURE);
+
+    }
+
+
+    @Test(expected = UnauthorizedMessageAccessException.class)
+    public void deleteMessage_unauthorizedAccess_UnauthorizedMessageAccessExceptionThrown() throws JwtFormatException,
+            AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
+
+        Message editedMessage = new Message();
+        editedMessage.setBody("Hello");
+        editedMessage.setMessageId("abc123");
+        editedMessage.setLastUpdated("someTime");
+        editedMessage.setCreator("someone.else@example.com");
+        when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(editedMessage);
+
+
+        boardService.deleteMessage("ABC123",JWT_VALID);
+
+    }
+
+    @Test(expected = MissingMessageException.class)
+    public void deleteMessage_nonExistingId_nullMessage() throws JwtFormatException,
+            AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
+
+        when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(null);
+
+        boardService.deleteMessage("ABC123",JWT_VALID);
 
     }
 

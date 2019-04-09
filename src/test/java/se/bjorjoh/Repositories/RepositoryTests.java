@@ -120,9 +120,30 @@ public class RepositoryTests {
 
         assertTrue(editedMessage.getBody().equals(newMessage.getBody()));
 
+    }
+
+    @Test
+    public void deleteMessage_validRequest_DeletedMessageReturned(){
+        Message messageToDelete = new Message();
+        messageToDelete.setBody("New Hello");
+        messageToDelete.setMessageId("abc333");
+        messageToDelete.setLastUpdated("someTime");
+        messageToDelete.setCreator("user@example.com");
+
+        String id = hazelcastRepository.saveMessage(messageToDelete);
+
+        Message deletedMessage = hazelcastRepository.deleteMessage(id);
+        assertTrue(deletedMessage.getMessageId().equals(messageToDelete.getMessageId()));
 
     }
 
+    @Test
+    public void deleteMessage_nonExistingMessage_NullReturned(){
+
+        Message deletedMessage = hazelcastRepository.deleteMessage("someid123");
+        assertTrue(deletedMessage == null);
+
+    }
 
 
 
