@@ -22,6 +22,7 @@ import se.bjorjoh.Services.BoardServiceTests;
 import se.bjorjoh.models.ErrorModel;
 import se.bjorjoh.models.Message;
 import se.bjorjoh.services.BoardService;
+import se.bjorjoh.services.MessageService;
 
 import java.io.IOException;
 import java.util.List;
@@ -42,7 +43,7 @@ public class ControllerTests {
 
 
     @MockBean
-    private BoardService boardService;
+    private MessageService boardService;
 
     @LocalServerPort
     private int port;

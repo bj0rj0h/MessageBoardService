@@ -22,11 +22,12 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
-public class BoardService {
+public class BoardService implements MessageService {
 
     private final BoardRepository boardRepository;
     Logger logger = LoggerFactory.getLogger(BoardService.class);
 
+    @Override
     public BoardRepository getBoardRepository(){
         return boardRepository;
     }
@@ -57,7 +58,8 @@ public class BoardService {
         }
     }
 
-    public Message addMessage(Message message,String jwtString) throws IOException,AuthenticationException {
+    @Override
+    public Message addMessage(Message message, String jwtString) throws IOException,AuthenticationException {
 
         try {
             DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
@@ -88,6 +90,7 @@ public class BoardService {
 
     }
 
+    @Override
     public List<Message> getAllMessages(){
 
         return boardRepository.getMessages();
@@ -106,7 +109,8 @@ public class BoardService {
         }
     }
 
-    public Message editMessage(Message message, String messageId,String jwtString)
+    @Override
+    public Message editMessage(Message message, String messageId, String jwtString)
             throws JwtFormatException, AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
 
         JwtContent jwtContent;
@@ -141,7 +145,8 @@ public class BoardService {
         return storedMessage;
     }
 
-    public void deleteMessage(String messageId,String jwtString) throws AuthenticationException, JwtFormatException, UnauthorizedMessageAccessException, MissingMessageException {
+    @Override
+    public void deleteMessage(String messageId, String jwtString) throws AuthenticationException, JwtFormatException, UnauthorizedMessageAccessException, MissingMessageException {
 
         JwtContent jwtContent;
 

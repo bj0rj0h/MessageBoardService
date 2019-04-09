@@ -9,7 +9,7 @@ import se.bjorjoh.ErrorHandling.MissingMessageException;
 import se.bjorjoh.ErrorHandling.UnauthorizedMessageAccessException;
 import se.bjorjoh.models.ErrorModel;
 import se.bjorjoh.models.Message;
-import se.bjorjoh.services.BoardService;
+import se.bjorjoh.services.MessageService;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
@@ -24,7 +24,7 @@ import java.util.TimeZone;
 public class Controller {
 
     @Autowired
-    private BoardService boardService;
+    private MessageService boardService;
 
     @ExceptionHandler({MissingMessageException.class})
     public ErrorModel handleMissingMessage(HttpServletResponse response){
