@@ -1,0 +1,160 @@
+swagger: '2.0'
+info:
+  version: 1.0.0
+  title: MessageBoardService
+  description: A small service that enables functionality to add messages, edit messages, delete messages, and delete messages. 
+  termsOfService: terms
+  contact:
+    name: Sample McSampleFace
+    url: https://twitter.com/boatymcboatface?lang=en
+    email: some@email.com
+  license:
+    name: MIT
+    url: http://opensource.org/licenses/MIT
+host: localhost:8080
+schemes: 
+  - http
+basePath: /
+paths:
+  /messages:
+    post:
+      summary: "Add a new message"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "message"
+        description: "The message to be added"
+        required: true
+        schema:
+          $ref: "#/definitions/Message"
+      - name: "Authorization"
+        in: "header"
+        description: "The header in which the jwt is provided. Of type bearer"
+        required: true
+        type: "string"
+      responses:
+        201:
+          description: "Message added successfully"
+          schema:
+            $ref: '#/definitions/CreatedMessage'
+    get:
+      summary: "Retrieves all the messages"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Messages successfully returned"
+          schema:
+            $ref: '#/definitions/CreatedMessages'
+  /messagea/{messageId}:
+    put:
+      summary: "Edits the content of the message with the given messageId. Users are authorized through a JWT"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "message"
+        description: "The new message body of the message"
+        required: true
+        schema:
+          $ref: "#/definitions/Message"
+      - in: "path"
+        name: "messageId"
+        description: "The id of the message that should be edited"
+        required: true
+        type: "string"
+        format: "uuid"
+      - name: "Authorization"
+        in: "header"
+        description: "The header in which the jwt is provided. Of type bearer"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Message edited successfully"
+          schema:
+            $ref: '#/definitions/CreatedMessage'
+        404:
+          description: "No message existed with the given messageId"
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+        403:
+          description: "User not authorized to edit the requested message"
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+        401:
+          description: "User didn't provide a valid bearer token in the Authorization header"
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+    delete:
+      summary: "Deletes the message with the given messageId. Users are authorized through a JWT"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "path"
+        name: "messageId"
+        description: "The id of the message that should be deleted"
+        required: true
+        type: "string"
+        format: "uuid"
+      responses:
+        200:
+          description: "Message deleted successfully"
+        404:
+          description: "No message existed with the given messageId"
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+        403:
+          description: "User not authorized to delete the requested message"
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+        401:
+          description: "User didn't proved an Authorization header with a bearer token"
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+definitions:
+  Message:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+  CreatedMessage:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+        description: "The content of the message"
+      creator:
+        type: "string"
+        format: "email"
+        description: "The email of the message creator"
+      lastUpdated:
+        type: "string"
+        format: "date-time"
+        description: "Timestamp of when the message was last updated. In ISO8601"
+      messageId:
+        type: "string"
+        format: "uuid"
+        description: "The unique ID of the message"
+  CreatedMessages:
+        type: "array"
+        items:
+          $ref: '#/definitions/CreatedMessage'
+  ErrorMessage:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+        description: "Description of what went wrong"
+      timestamp:
+        type: "string"
+        description: "Timestamp of when the error occurred"
