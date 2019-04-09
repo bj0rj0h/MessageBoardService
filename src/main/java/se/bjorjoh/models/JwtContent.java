@@ -10,15 +10,20 @@ public class JwtContent {
     private int exp;
     private String aud;
     private String sub;
-    @JsonProperty("GivenName")
     private String GivenName;
-    @JsonProperty("Surname")
     private String Surname;
     private String Email;
 
 
-    public JwtContent(@JsonProperty("iss") String iss,@JsonProperty("iat") int iat,@JsonProperty("exp") int exp,@JsonProperty("aud") String aud,@JsonProperty("sub") String sub, @JsonProperty("GivenName")String givenName, @JsonProperty("Surname")String surname,
+    public JwtContent(@JsonProperty("iss") String iss,
+                      @JsonProperty("iat") int iat,
+                      @JsonProperty("exp") int exp,
+                      @JsonProperty("aud") String aud,
+                      @JsonProperty("sub") String sub,
+                      @JsonProperty("GivenName")String givenName,
+                      @JsonProperty("Surname")String surname,
                       @JsonProperty(required = true,value = "Email") String email) {
+
         this.iss = iss;
         this.iat = iat;
         this.exp = exp;
@@ -27,6 +32,7 @@ public class JwtContent {
         GivenName = givenName;
         Surname = surname;
         Email = email;
+
     }
 
     public java.lang.String getIss() {
@@ -89,7 +95,6 @@ public class JwtContent {
         return Email;
     }
 
-    @JsonProperty(required = true)
     public void setEmail(String email) {
         Email = email;
     }

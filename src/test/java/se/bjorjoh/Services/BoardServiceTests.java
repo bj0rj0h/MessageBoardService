@@ -1,6 +1,5 @@
 package se.bjorjoh.Services;
 
-import com.auth0.jwt.exceptions.JWTVerificationException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -8,7 +7,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.NoSuchMessageException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -20,7 +18,6 @@ import se.bjorjoh.models.Message;
 import se.bjorjoh.repositories.HazelcastRepository;
 import se.bjorjoh.services.BoardService;
 
-import javax.validation.constraints.AssertFalse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -187,8 +184,10 @@ public class BoardServiceTests {
         editedMessage.setLastUpdated("someTime");
         editedMessage.setCreator("lisa.eriksson@example.com");
         when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(editedMessage);
+        when(boardService.getBoardRepository().deleteMessage(anyString())).thenReturn(editedMessage);
 
         boardService.deleteMessage("ABC123",JWT_VALID);
+
 
     }
 
@@ -212,8 +211,7 @@ public class BoardServiceTests {
         editedMessage.setCreator("someone.else@example.com");
         when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(editedMessage);
 
-
-        boardService.deleteMessage("ABC123",JWT_VALID);
+        boardService.deleteMessage("abc123",JWT_VALID);
 
     }
 
@@ -221,7 +219,7 @@ public class BoardServiceTests {
     public void deleteMessage_nonExistingId_nullMessage() throws JwtFormatException,
             AuthenticationException, UnauthorizedMessageAccessException, MissingMessageException {
 
-        when(boardService.getBoardRepository().getMessage(anyString())).thenReturn(null);
+        when(boardService.getBoardRepository().deleteMessage(anyString())).thenReturn(null);
 
         boardService.deleteMessage("ABC123",JWT_VALID);
 

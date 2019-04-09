@@ -6,9 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.NoSuchMessageException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 import se.bjorjoh.ErrorHandling.AuthenticationException;
 import se.bjorjoh.ErrorHandling.JwtFormatException;
 import se.bjorjoh.ErrorHandling.MissingMessageException;
@@ -38,34 +36,12 @@ public class BoardService {
         boardRepository = hazelcastRepository;
     }
 
-    public Message addMessage(Message message,String jwtString) throws IOException,AuthenticationException{
-        try {
-            DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
-            JwtContent jwtContent = getJwtContent(jwt.getPayload());
-            addMessageForUser(jwtContent,message);
-        } catch (JWTVerificationException e){
-            logger.error("Error while validating jwt signature",e);
-            throw new AuthenticationException();
-        } catch (IOException e){
-            throw e;
-        }
-        return message;
-    }
-
-    private Message addMessageForUser(JwtContent jwtContent,Message message) {
-
-        String userEmail = jwtContent.getEmail();
-        message.setCreator(userEmail);
-
-        String nowAsISO=getCurrentTimeAsISO8601();
-        message.setLastUpdated(nowAsISO);
-
-        String uuid = boardRepository.saveMessage(message);
-        message.setMessageId(uuid);
-
-        return message;
-
-
+    private String getCurrentTimeAsISO8601(){
+        TimeZone tz = TimeZone.getDefault();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
+        df.setTimeZone(tz);
+        String nowAsISO = df.format(new Date());
+        return nowAsISO;
     }
 
     private JwtContent getJwtContent(String jwtPayload) throws IOException{
@@ -81,9 +57,53 @@ public class BoardService {
         }
     }
 
+    public Message addMessage(Message message,String jwtString) throws IOException,AuthenticationException {
+
+        try {
+            DecodedJWT jwt = JwtAuthorizer.getAndVerifyJWT(jwtString);
+            JwtContent jwtContent = getJwtContent(jwt.getPayload());
+            addMessageForUser(jwtContent,message);
+        } catch (JWTVerificationException e){
+            logger.error("Error while validating jwt signature",e);
+            throw new AuthenticationException();
+        } catch (IOException e){
+            throw e;
+        }
+        return message;
+
+    }
+
+    private Message addMessageForUser(JwtContent jwtContent,Message message) {
+
+        String userEmail = jwtContent.getEmail();
+        message.setCreator(userEmail);
+
+        String nowAsISO=getCurrentTimeAsISO8601();
+        message.setLastUpdated(nowAsISO);
+
+        String uuid = boardRepository.saveMessage(message);
+        message.setMessageId(uuid);
+
+        return message;
+
+    }
+
     public List<Message> getAllMessages(){
 
         return boardRepository.getMessages();
+    }
+
+    private void editAndDeletePreValidation(Message message,JwtContent jwtContent,String messageId) throws MissingMessageException,
+            UnauthorizedMessageAccessException{
+
+        if (message == null){
+            logger.warn("No message found with id: " + messageId);
+            throw new MissingMessageException("No message with the given ID exists");
+        }
+
+        if (!(message.getCreator().equals(jwtContent.getEmail()))){
+            throw new UnauthorizedMessageAccessException();
+        }
     }
 
     public Message editMessage(Message message, String messageId,String jwtString)
@@ -110,14 +130,7 @@ public class BoardService {
 
         Message storedMessage = boardRepository.getMessage(messageId);
 
-        if (storedMessage == null){
-            logger.warn("No message found with id: " + messageId);
-            throw new MissingMessageException("No message with the given ID exists");
-        }
-
-        if (!(storedMessage.getCreator().equals(jwtContent.getEmail()))){
-            throw new UnauthorizedMessageAccessException();
-        }
+        editAndDeletePreValidation(storedMessage,jwtContent,messageId);
 
         String nowAsISO=getCurrentTimeAsISO8601();
         storedMessage.setLastUpdated(nowAsISO);
@@ -128,34 +141,7 @@ public class BoardService {
         return storedMessage;
     }
 
-    private Message deleteMessageForUser(JwtContent jwtContent,String messageId)
-            throws UnauthorizedMessageAccessException,MissingMessageException {
-
-        Message storedMessage = boardRepository.getMessage(messageId);
-
-        if (storedMessage == null){
-            logger.warn("No message found with id: " + messageId);
-            throw new MissingMessageException("No message with the given ID exists");
-        }
-
-        if (!(storedMessage.getCreator().equals(jwtContent.getEmail()))){
-            throw new UnauthorizedMessageAccessException();
-        }
-
-        boardRepository.deleteMessage(messageId);
-
-        return storedMessage;
-    }
-
-    private String getCurrentTimeAsISO8601(){
-        TimeZone tz = TimeZone.getDefault();
-        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
-        df.setTimeZone(tz);
-        String nowAsISO = df.format(new Date());
-        return nowAsISO;
-    }
-
-    public void deleteMessage(String jwtString, String messageId) throws AuthenticationException, JwtFormatException, UnauthorizedMessageAccessException, MissingMessageException {
+    public void deleteMessage(String messageId,String jwtString) throws AuthenticationException, JwtFormatException, UnauthorizedMessageAccessException, MissingMessageException {
 
         JwtContent jwtContent;
 
@@ -170,10 +156,18 @@ public class BoardService {
             throw new JwtFormatException();
         }
 
-        Message deletedMessage = deleteMessageForUser(jwtContent,messageId);
-        if (deletedMessage == null){
-            throw new MissingMessageException();
-        }
+        deleteMessageForUser(jwtContent,messageId);
 
+    }
+
+    private Message deleteMessageForUser(JwtContent jwtContent,String messageId)
+            throws UnauthorizedMessageAccessException,MissingMessageException {
+
+        Message storedMessage = boardRepository.getMessage(messageId);
+        editAndDeletePreValidation(storedMessage,jwtContent,messageId);
+
+        boardRepository.deleteMessage(messageId);
+
+        return storedMessage;
     }
 }

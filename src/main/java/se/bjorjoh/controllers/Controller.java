@@ -1,6 +1,5 @@
 package se.bjorjoh.controllers;
 
-import com.auth0.jwt.exceptions.JWTVerificationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -27,19 +26,8 @@ public class Controller {
     @Autowired
     private BoardService boardService;
 
-    @ExceptionHandler({JWTVerificationException.class})
-    public ErrorModel handleInvalidJwt(HttpServletResponse response){
-
-
-        String nowAsISO = getCurrentTimeAsISO8601();
-        ErrorModel error = new ErrorModel("Error while verifying jwt signature",nowAsISO);
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        return error;
-    }
-
     @ExceptionHandler({MissingMessageException.class})
     public ErrorModel handleMissingMessage(HttpServletResponse response){
-
 
         String nowAsISO = getCurrentTimeAsISO8601();
         ErrorModel error = new ErrorModel("No message exists with the given id",nowAsISO);
@@ -49,7 +37,6 @@ public class Controller {
 
     @ExceptionHandler({JwtFormatException.class})
     public ErrorModel handleMalformedJwtPayload(HttpServletResponse response){
-
 
         String nowAsISO = getCurrentTimeAsISO8601();
         ErrorModel error = new ErrorModel("Error while parsing jwt body",nowAsISO);
@@ -112,7 +99,6 @@ public class Controller {
             UnauthorizedMessageAccessException, AuthenticationException, MissingMessageException {
 
         String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
-
         Message editedMessage = boardService.editMessage(message,messageId,jwt);
         response.setStatus(HttpServletResponse.SC_OK);
         return editedMessage;
@@ -128,11 +114,12 @@ public class Controller {
                                         UnauthorizedMessageAccessException {
 
         String jwt = verifyAuthorizationHeaderIsValid(authorizationHeader);
-        boardService.deleteMessage(jwt,messageId);
+        boardService.deleteMessage(messageId,jwt);
         response.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
 
     private String extractJwtFromAuthorizationHeader(String authorizationHeader) {
+
         String[] split = authorizationHeader.split("\\s+");
         String result = "";
         if (split.length>1){
@@ -147,20 +134,23 @@ public class Controller {
         if (authorizationHeader == null){
             throw new AuthenticationException("Authorization header missing");
         }
-        String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
 
+        String jwt = extractJwtFromAuthorizationHeader(authorizationHeader);
         if (jwt.isEmpty()){
             throw new AuthenticationException("Authorization header is missing bearer prefix or is badly formatted");
         }
         return jwt;
+
     }
 
     private String getCurrentTimeAsISO8601(){
+
         TimeZone tz = TimeZone.getDefault();
         DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'"); // Quoted "Z" to indicate UTC, no timezone offset
         df.setTimeZone(tz);
         String nowAsISO = df.format(new Date());
         return nowAsISO;
+
     }
 
 }
